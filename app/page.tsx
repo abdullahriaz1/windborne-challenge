@@ -379,7 +379,7 @@ export default function Home() {
                     </div>
                     <div className="bg-black/30 border border-gray-800 rounded p-3">
                       <div className="text-[10px] text-gray-500 uppercase tracking-widest mb-1">Altitude</div>
-                      <div className="font-mono text-lg text-cyan-400">{selectedBalloon.coord[2].toFixed(0)} m</div>
+                      <div className="font-mono text-lg text-cyan-400">{(selectedBalloon.coord[2] * 1000).toFixed(0)} m</div>
                     </div>
                   </div>
                   <div className="bg-black/30 border border-gray-800 rounded p-3">

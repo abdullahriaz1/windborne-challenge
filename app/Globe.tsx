@@ -48,11 +48,16 @@ function Globe({ data, getAltitudeColor, minAlt, maxAlt, onMarkerClick, allHourD
   }, [showWelcome, welcomeOpacity, onWelcomeChange]);
   
   // Add global click listener to stop animations on any page click
+  // But only after welcome text is gone
   useEffect(() => {
-    const handleClick = () => setPageClicked(true);
+    const handleClick = () => {
+      if (!showWelcome) {
+        setPageClicked(true);
+      }
+    };
     document.addEventListener('click', handleClick);
     return () => document.removeEventListener('click', handleClick);
-  }, []);
+  }, [showWelcome]);
   
   // Pre-calculate colors for each balloon to avoid recalculating every frame
   const balloonColors = useMemo(() => {
@@ -103,7 +108,7 @@ function Globe({ data, getAltitudeColor, minAlt, maxAlt, onMarkerClick, allHourD
       }
       
       const elapsed = Date.now() - cameraAnimationStart.current;
-      const duration = 4000; // 6 second animation
+      const duration = 6000; // 6 second animation
       const progress = Math.min(elapsed / duration, 1);
       
       // Welcome text fade animation (6 seconds total: 2s fade in, 2s hold, 2s fade out)
@@ -145,7 +150,7 @@ function Globe({ data, getAltitudeColor, minAlt, maxAlt, onMarkerClick, allHourD
       }
     }
     
-    // Continue auto-orbit after zoom completes, until user clicks anywhere on page
+    // Continue auto-orbit after zoom completes, until user clicks (after welcome is gone)
     if (hasAnimated.current && !pageClicked) {
       const radius = 5;
       const speed = 0.15;
@@ -554,12 +559,21 @@ function Controls() {
   
   useEffect(() => {
     const controls = new OrbitControls(camera, gl.domElement);
+    
+    // Match drei OrbitControls defaults
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+    controls.rotateSpeed = 1.0;
+    controls.zoomSpeed = 1.0;
+    controls.panSpeed = 1.0;
+    controls.screenSpacePanning = true; // Match drei behavior
     controls.enableZoom = true;
     controls.enablePan = true;
     controls.enableRotate = true;
-    controls.zoomSpeed = 0.6;
-    controls.panSpeed = 0.5;
-    controls.rotateSpeed = 0.4;
+    
+    // Smooth zoom behavior
+    controls.zoomToCursor = true;
+    
     controlsRef.current = controls;
     
     return () => {
@@ -567,7 +581,11 @@ function Controls() {
     };
   }, [camera, gl]);
   
-  useFrame(() => controlsRef.current?.update());
+  useFrame(() => {
+    if (controlsRef.current) {
+      controlsRef.current.update();
+    }
+  });
   
   return null;
 }

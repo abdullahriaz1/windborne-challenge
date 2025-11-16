@@ -1,11 +1,9 @@
 'use client';
 
 import { useRef, useMemo, useEffect, useState } from 'react';
-import { Canvas, useFrame, extend, useThree } from '@react-three/fiber';
-import { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import * as THREE from 'three';
-
-extend({ OrbitControlsImpl });
 
 interface GlobeProps {
   data: number[][];
@@ -105,7 +103,7 @@ function Globe({ data, getAltitudeColor, minAlt, maxAlt, onMarkerClick, allHourD
       }
       
       const elapsed = Date.now() - cameraAnimationStart.current;
-      const duration = 6000; // 6 second animation
+      const duration = 4000; // 6 second animation
       const progress = Math.min(elapsed / duration, 1);
       
       // Welcome text fade animation (6 seconds total: 2s fade in, 2s hold, 2s fade out)
@@ -550,26 +548,24 @@ function Globe({ data, getAltitudeColor, minAlt, maxAlt, onMarkerClick, allHourD
   );
 }
 
-function Controls({ onChange }: { onChange: () => void }) {
+function Controls() {
   const { camera, gl } = useThree();
-  const controlsRef = useRef<OrbitControlsImpl | null>(null);
+  const controlsRef = useRef<OrbitControls | null>(null);
   
   useEffect(() => {
-    const controls = new OrbitControlsImpl(camera, gl.domElement);
+    const controls = new OrbitControls(camera, gl.domElement);
     controls.enableZoom = true;
     controls.enablePan = true;
     controls.enableRotate = true;
     controls.zoomSpeed = 0.6;
     controls.panSpeed = 0.5;
     controls.rotateSpeed = 0.4;
-    controls.addEventListener('change', onChange);
     controlsRef.current = controls;
     
     return () => {
-      controls.removeEventListener('change', onChange);
       controls.dispose();
     };
-  }, [camera, gl, onChange]);
+  }, [camera, gl]);
   
   useFrame(() => controlsRef.current?.update());
   
@@ -577,8 +573,6 @@ function Controls({ onChange }: { onChange: () => void }) {
 }
 
 function GlobeWithControls({ data, getAltitudeColor, minAlt, maxAlt, onMarkerClick, allHourData, isAnimating, onAnimationProgress, showStems, onWelcomeChange }: GlobeProps) {
-  const [userInteracted, setUserInteracted] = useState(false);
-  
   return (
     <>
       <Globe 
@@ -591,9 +585,10 @@ function GlobeWithControls({ data, getAltitudeColor, minAlt, maxAlt, onMarkerCli
         isAnimating={isAnimating}
         onAnimationProgress={onAnimationProgress}
         showStems={showStems}
+        userInteracted={false}
         onWelcomeChange={onWelcomeChange}
       />
-      <Controls onChange={() => setUserInteracted(true)} />
+      <Controls />
     </>
   );
 }

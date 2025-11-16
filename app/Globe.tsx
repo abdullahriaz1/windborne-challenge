@@ -1,9 +1,11 @@
 'use client';
 
 import { useRef, useMemo, useEffect, useState } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Sphere } from '@react-three/drei';
+import { Canvas, useFrame, extend, useThree } from '@react-three/fiber';
+import { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import * as THREE from 'three';
+
+extend({ OrbitControlsImpl });
 
 interface GlobeProps {
   data: number[][];
@@ -103,7 +105,7 @@ function Globe({ data, getAltitudeColor, minAlt, maxAlt, onMarkerClick, allHourD
       }
       
       const elapsed = Date.now() - cameraAnimationStart.current;
-      const duration = 4000; // 6 second animation
+      const duration = 6000; // 6 second animation
       const progress = Math.min(elapsed / duration, 1);
       
       // Welcome text fade animation (6 seconds total: 2s fade in, 2s hold, 2s fade out)
@@ -514,26 +516,28 @@ function Globe({ data, getAltitudeColor, minAlt, maxAlt, onMarkerClick, allHourD
       </points>
 
       {/* Earth sphere with realistic texture */}
-      <Sphere ref={globeRef} args={[2, 64, 64]}>
+      <mesh ref={globeRef}>
+        <sphereGeometry args={[2, 64, 64]} />
         <meshStandardMaterial
           map={earthTexture}
           roughness={0.7}
           metalness={0.1}
         />
-      </Sphere>
+      </mesh>
 
       {/* Coordinate markers with altitude */}
       {markers}
 
       {/* Realistic atmosphere glow effect */}
-      <Sphere args={[2.05, 64, 64]}>
+      <mesh>
+        <sphereGeometry args={[2.05, 64, 64]} />
         <meshBasicMaterial
           color="#4a9eff"
           transparent
           opacity={0.06}
           side={THREE.BackSide}
         />
-      </Sphere>
+      </mesh>
 
       {/* Lighting - maximum brightness on all sides */}
       <ambientLight intensity={1.5} />
@@ -544,6 +548,32 @@ function Globe({ data, getAltitudeColor, minAlt, maxAlt, onMarkerClick, allHourD
       <directionalLight position={[0, -5, 0]} intensity={0.5} />
     </>
   );
+}
+
+function Controls({ onChange }: { onChange: () => void }) {
+  const { camera, gl } = useThree();
+  const controlsRef = useRef<OrbitControlsImpl | null>(null);
+  
+  useEffect(() => {
+    const controls = new OrbitControlsImpl(camera, gl.domElement);
+    controls.enableZoom = true;
+    controls.enablePan = true;
+    controls.enableRotate = true;
+    controls.zoomSpeed = 0.6;
+    controls.panSpeed = 0.5;
+    controls.rotateSpeed = 0.4;
+    controls.addEventListener('change', onChange);
+    controlsRef.current = controls;
+    
+    return () => {
+      controls.removeEventListener('change', onChange);
+      controls.dispose();
+    };
+  }, [camera, gl, onChange]);
+  
+  useFrame(() => controlsRef.current?.update());
+  
+  return null;
 }
 
 function GlobeWithControls({ data, getAltitudeColor, minAlt, maxAlt, onMarkerClick, allHourData, isAnimating, onAnimationProgress, showStems, onWelcomeChange }: GlobeProps) {
@@ -563,15 +593,7 @@ function GlobeWithControls({ data, getAltitudeColor, minAlt, maxAlt, onMarkerCli
         showStems={showStems}
         onWelcomeChange={onWelcomeChange}
       />
-      <OrbitControls
-        enableZoom={true}
-        enablePan={true}
-        enableRotate={true}
-        zoomSpeed={0.6}
-        panSpeed={0.5}
-        rotateSpeed={0.4}
-        onChange={() => setUserInteracted(true)}
-      />
+      <Controls onChange={() => setUserInteracted(true)} />
     </>
   );
 }
